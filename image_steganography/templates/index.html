@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Image/Video Steganography - Encoder</title>
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='styles.css') }}"
+    />
+    <style>
+      .hidden {
+        display: none;
+      }
+      .video-info {
+        margin-top: 15px;
+        padding: 10px;
+        background-color: #f0f8ff;
+        border-radius: 4px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Steganography Encoder</h1>
+
+      <div class="form-group">
+        <label>Steganography Type:</label>
+        <div class="radio-group">
+          <label
+            ><input
+              type="radio"
+              name="steg_type"
+              value="image"
+              checked
+              onclick="toggleStegType('image')"
+            />
+            Image</label
+          >
+          <!-- <label
+            ><input
+              type="radio"
+              name="steg_type"
+              value="video"
+              onclick="toggleStegType('video')"
+            />
+            Video</label
+          > -->
+        </div>
+      </div>
+
+      <!-- Image Encoding Form -->
+      <form
+        method="post"
+        action="/upload"
+        enctype="multipart/form-data"
+        id="image-form"
+      >
+        <div class="form-group">
+          <label for="image">Upload Image:</label>
+          <input
+            type="file"
+            id="image"
+            name="image"
+            accept="image/*"
+            required
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="message">Secret Message:</label>
+          <textarea id="message" name="message" rows="3" required></textarea>
+        </div>
+
+        <div class="form-group">
+          <label>Encryption Technique:</label>
+          <div class="radio-group">
+            <label
+              ><input type="radio" name="technique" value="lsb" checked />
+              LSB</label
+            >
+            <label
+              ><input type="radio" name="technique" value="dct" /> DCT</label
+            >
+            <label
+              ><input type="radio" name="technique" value="dwt" /> DWT</label
+            >
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="key">Secret Key:</label>
+          <input type="text" id="key" name="key" required />
+        </div>
+
+        <div class="form-group">
+          <label for="email">Receiver Email (optional):</label>
+          <input type="email" id="email" name="email" />
+        </div>
+
+        <button type="submit">Encode & Send</button>
+      </form>
+
+      <!-- Video Encoding Form -->
+      <form
+        method="post"
+        action="/video_encode"
+        enctype="multipart/form-data"
+        id="video-form"
+        class="hidden"
+      >
+        <div class="form-group">
+          <label for="video">Upload Video:</label>
+          <input
+            type="file"
+            id="video"
+            name="video"
+            accept="video/*"
+            required
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="message">Secret Message:</label>
+          <textarea id="video-message" name="message" rows="3" required></textarea>
+        </div>
+
+        <div class="form-group">
+          <label for="frame_number">Frame Number to Encode:</label>
+          <input
+            type="number"
+            id="frame_number"
+            name="frame_number"
+            min="1"
+            required
+          />
+          <div class="video-info">
+            <p>Note: Frame numbers start from 1. For best results, choose a frame in the middle of the video.</p>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="key">Secret Key:</label>
+          <input type="text" id="video-key" name="key" required />
+        </div>
+
+        <button type="submit">Encode Video</button>
+      </form>
+
+      {% if show_result %}
+      <div class="result">
+        <h2>Encoded {{ 'Video' if steg_type == 'video' else 'Image' }}</h2>
+        {% if steg_type == 'image' %}
+        <img
+          src="data:image/png;base64,{{ encoded_image }}"
+          alt="Encoded Image"
+        />
+        {% else %}
+        <video controls width="100%">
+          <source src="{{ url_for('uploaded_file', filename=encoded_video) }}" type="video/mp4">
+          Your browser does not support the video tag.
+        </video>
+        {% endif %}
+        <div class="info">
+          <p><strong>Technique:</strong> {{ technique }}</p>
+          <p><strong>Secret Key:</strong> {{ key }}</p>
+          {% if email %}
+          <p>File has been sent to {{ email }}</p>
+          {% endif %}
+          {% if frame_number %}
+          <p><strong>Encoded Frame:</strong> {{ frame_number }}</p>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+
+      <div class="nav-link">
+        <a href="{{ url_for('receiver') }}">Go to Decoder Page</a>
+      </div>
+    </div>
+
+    {% with messages = get_flashed_messages() %} {% if messages %}
+    <div class="flash-messages">
+      {% for message in messages %}
+      <div class="flash">{{ message }}</div>
+      {% endfor %}
+    </div>
+    {% endif %} {% endwith %}
+
+    <script>
+      function toggleStegType(type) {
+        if (type === 'video') {
+          document.getElementById('image-form').classList.add('hidden');
+          document.getElementById('video-form').classList.remove('hidden');
+        } else {
+          document.getElementById('video-form').classList.add('hidden');
+          document.getElementById('image-form').classList.remove('hidden');
+        }
+      }
+    </script>
+  </body>
+</html>

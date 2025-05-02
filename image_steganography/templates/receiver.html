@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Image/Video Steganography - Decoder</title>
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='styles.css') }}"
+    />
+    <style>
+      .loader {
+        border: 5px solid #f3f3f3;
+        border-top: 5px solid #3498db;
+        border-radius: 50%;
+        width: 50px;
+        height: 50px;
+        animation: spin 2s linear infinite;
+        margin: 20px auto;
+        display: none;
+      }
+      @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+      }
+      .hidden {
+        display: none;
+      }
+      .video-info {
+        margin-top: 15px;
+        padding: 10px;
+        background-color: #f0f8ff;
+        border-radius: 4px;
+      }
+      #copy-btn {
+        margin-top: 10px;
+        padding: 8px 15px;
+        background-color: #4CAF50;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+      #copy-btn:hover {
+        background-color: #45a049;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Steganography Decoder</h1>
+
+      <div class="form-group">
+        <label>Steganography Type:</label>
+        <div class="radio-group">
+          <label
+            ><input
+              type="radio"
+              name="steg_type"
+              value="image"
+              checked
+              onclick="toggleStegType('image')"
+            />
+            Image</label
+          >
+          <!-- <label
+            ><input
+              type="radio"
+              name="steg_type"
+              value="video"
+              onclick="toggleStegType('video')"
+            />
+            Video</label
+          > -->
+        </div>
+      </div>
+
+      <!-- Image Decoding Form -->
+      <form
+        method="post"
+        action="/decode"
+        enctype="multipart/form-data"
+        id="image-form"
+      >
+        <div class="form-group">
+          <label for="image">Upload Encoded Image:</label>
+          <input
+            type="file"
+            id="image"
+            name="image"
+            accept="image/*"
+            required
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="key">Secret Key:</label>
+          <input type="text" id="key" name="key" required />
+        </div>
+
+        <div class="form-group">
+          <label>Decryption Technique:</label>
+          <div class="radio-group">
+            <label
+              ><input type="radio" name="technique" value="lsb" checked />
+              LSB</label
+            >
+            <label
+              ><input type="radio" name="technique" value="dct" /> DCT</label
+            >
+            <label
+              ><input type="radio" name="technique" value="dwt" /> DWT</label
+            >
+          </div>
+        </div>
+
+        <button type="submit">Decode</button>
+      </form>
+
+      <div id="loading" class="loader"></div>
+
+      <!-- Video Decoding Form -->
+      <form
+        method="post"
+        action="/video_decode"
+        enctype="multipart/form-data"
+        id="video-form"
+        class="hidden"
+      >
+        <div class="form-group">
+          <label for="video">Upload Encoded Video:</label>
+          <input
+            type="file"
+            id="video"
+            name="video"
+            accept="video/*"
+            required
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="frame_number">Frame Number to Decode:</label>
+          <input
+            type="number"
+            id="frame_number"
+            name="frame_number"
+            min="1"
+            required
+          />
+          <div class="video-info">
+            <p>Note: Enter the same frame number used during encoding.</p>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="key">Secret Key:</label>
+          <input type="text" id="video-key" name="key" required />
+        </div>
+
+        <button type="submit">Decode Video</button>
+      </form>
+
+      {% if show_result %}
+      <div class="result">
+        <h2>Decoded {{ 'Video' if steg_type == 'video' else 'Image' }}</h2>
+        {% if steg_type == 'image' %}
+        <img
+          src="data:image/png;base64,{{ decoded_image }}"
+          alt="Decoded Image"
+        />
+        {% endif %}
+        <div class="info">
+          <h3>Secret Message:</h3>
+          <div class="message-box" id="decoded-message">{{ decoded_message }}</div>
+          <button id="copy-btn" onclick="copyToClipboard()">Copy Message</button>
+        </div>
+      </div>
+      {% endif %}
+
+      <div class="nav-link">
+        <a href="{{ url_for('index') }}">Go to Encoder Page</a>
+      </div>
+    </div>
+
+    {% with messages = get_flashed_messages() %} {% if messages %}
+    <div class="flash-messages">
+      {% for message in messages %}
+      <div class="flash">{{ message }}</div>
+      {% endfor %}
+    </div>
+    {% endif %} {% endwith %}
+  </body>
+  <script>
+    // Add this function
+    function showLoading(show) {
+        document.getElementById('loading').style.display = show ? 'block' : 'none';
+    }
+
+    // Modify your form submissions
+    document.getElementById('image-form').addEventListener('submit', function() {
+        showLoading(true);
+    });
+    
+    document.getElementById('video-form').addEventListener('submit', function() {
+        showLoading(true);
+    });
+
+    function toggleStegType(type) {
+        if (type === 'video') {
+            document.getElementById('image-form').classList.add('hidden');
+            document.getElementById('video-form').classList.remove('hidden');
+        } else {
+            document.getElementById('video-form').classList.add('hidden');
+            document.getElementById('image-form').classList.remove('hidden');
+        }
+    }
+
+    function copyToClipboard() {
+        const message = document.getElementById('decoded-message').innerText;
+        navigator.clipboard.writeText(message).then(() => {
+            const btn = document.getElementById('copy-btn');
+            btn.textContent = 'Copied!';
+            setTimeout(() => {
+                btn.textContent = 'Copy Message';
+            }, 2000);
+        });
+    }
+</script>
+</html>
